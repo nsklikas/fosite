@@ -1,6 +1,3 @@
-// Copyright © 2023 Ory Corp
-// SPDX-License-Identifier: Apache-2.0
-
 package openid
 
 import (
@@ -14,16 +11,23 @@ import (
 	"github.com/ory/fosite"
 )
 
-func (c *OpenIDConnectExplicitHandler) HandleTokenEndpointRequest(ctx context.Context, request fosite.AccessRequester) error {
+func (c *OpenIDConnectDeviceHandler) HandleTokenEndpointRequest(ctx context.Context, request fosite.AccessRequester) error {
 	return errorsx.WithStack(fosite.ErrUnknownRequest)
 }
 
-func (c *OpenIDConnectExplicitHandler) PopulateTokenEndpointResponse(ctx context.Context, requester fosite.AccessRequester, responder fosite.AccessResponder) error {
+func (c *OpenIDConnectDeviceHandler) PopulateTokenEndpointResponse(ctx context.Context, requester fosite.AccessRequester, responder fosite.AccessResponder) error {
+
 	if !c.CanHandleTokenEndpointRequest(ctx, requester) {
 		return errorsx.WithStack(fosite.ErrUnknownRequest)
 	}
 
-	authorize, err := c.OpenIDConnectRequestStorage.GetOpenIDConnectSession(ctx, requester.GetRequestForm().Get("code"), requester)
+	code := requester.GetRequestForm().Get("device_code")
+	if code == "" {
+		return errorsx.WithStack(errorsx.WithStack(fosite.ErrUnknownRequest.WithHint("device_code missing form body")))
+	}
+	codeSignature := c.DeviceCodeStrategy.DeviceCodeSignature(ctx, code)
+
+	authorize, err := c.OpenIDConnectRequestStorage.GetOpenIDConnectSession(ctx, codeSignature, requester)
 	if errors.Is(err, ErrNoSessionFound) {
 		return errorsx.WithStack(fosite.ErrUnknownRequest.WithWrap(err).WithDebug(err.Error()))
 	} else if err != nil {
@@ -34,11 +38,11 @@ func (c *OpenIDConnectExplicitHandler) PopulateTokenEndpointResponse(ctx context
 		return errorsx.WithStack(fosite.ErrMisconfiguration.WithDebug("An OpenID Connect session was found but the openid scope is missing, probably due to a broken code configuration."))
 	}
 
-	if !requester.GetClient().GetGrantTypes().Has("authorization_code") {
-		return errorsx.WithStack(fosite.ErrUnauthorizedClient.WithHint("The OAuth 2.0 Client is not allowed to use the authorization grant \"authorization_code\"."))
+	if !requester.GetClient().GetGrantTypes().Has("urn:ietf:params:oauth:grant-type:device_code") {
+		return errorsx.WithStack(fosite.ErrUnauthorizedClient.WithHint("The OAuth 2.0 Client is not allowed to use the authorization grant \"urn:ietf:params:oauth:grant-type:device_code\"."))
 	}
 
-	sess, ok := authorize.GetSession().(Session)
+	sess, ok := requester.GetSession().(Session)
 	if !ok {
 		return errorsx.WithStack(fosite.ErrServerError.WithDebug("Failed to generate id token because session must be of type fosite/handler/openid.Session."))
 	}
@@ -61,11 +65,11 @@ func (c *OpenIDConnectExplicitHandler) PopulateTokenEndpointResponse(ctx context
 	return c.IssueExplicitIDToken(ctx, idTokenLifespan, authorize, responder)
 }
 
-func (c *OpenIDConnectExplicitHandler) CanSkipClientAuth(ctx context.Context, requester fosite.AccessRequester) bool {
+func (c *OpenIDConnectDeviceHandler) CanSkipClientAuth(ctx context.Context, requester fosite.AccessRequester) bool {
 	return false
 }
 
-func (c *OpenIDConnectExplicitHandler) CanHandleTokenEndpointRequest(ctx context.Context, requester fosite.AccessRequester) bool {
-	fmt.Println("CanHandleTokenEndpointRequest EXPL TOKEN")
-	return requester.GetGrantTypes().ExactOne("authorization_code")
+func (c *OpenIDConnectDeviceHandler) CanHandleTokenEndpointRequest(ctx context.Context, requester fosite.AccessRequester) bool {
+	fmt.Println("CanHandleTokenEndpointRequest OIDC")
+	return requester.GetGrantTypes().ExactOne("urn:ietf:params:oauth:grant-type:device_code")
 }
