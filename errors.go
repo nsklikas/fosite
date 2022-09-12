@@ -211,6 +211,11 @@ var (
 		ErrorField:       errAuthorizationPending,
 		CodeField:        http.StatusForbidden,
 	}
+	ErrExpiredToken = &RFC6749Error{
+		DescriptionField: "The device_code has expired, and the device authorization session has concluded.",
+		ErrorField:       errExpiredToken,
+		CodeField:        http.StatusForbidden,
+	}
 )
 
 const (
@@ -249,6 +254,7 @@ const (
 	errRegistrationNotSupportedName = "registration_not_supported"
 	errJTIKnownName                 = "jti_known"
 	errAuthorizationPending         = "authorization_pending"
+	errExpiredToken                 = "expired_token"
 )
 
 type (
