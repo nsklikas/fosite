@@ -12,7 +12,7 @@ import (
 )
 
 type DeviceAuthHandler struct {
-	Storage  RFC8628CodeStorage
+	Storage  RFC8628CoreStorage
 	Strategy RFC8628CodeStrategy
 	Config   interface {
 		fosite.DeviceProvider

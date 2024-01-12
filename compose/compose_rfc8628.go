@@ -14,7 +14,7 @@ import (
 func RFC8628DeviceFactory(config fosite.Configurator, storage interface{}, strategy interface{}) interface{} {
 	return &rfc8628.DeviceAuthHandler{
 		Strategy: strategy.(rfc8628.RFC8628CodeStrategy),
-		Storage:  storage.(rfc8628.RFC8628CodeStorage),
+		Storage:  storage.(rfc8628.RFC8628CoreStorage),
 		Config:   config,
 	}
 }
@@ -22,18 +22,14 @@ func RFC8628DeviceFactory(config fosite.Configurator, storage interface{}, strat
 // RFC8628DeviceAuthorizationTokenFactory creates an OAuth2 device authorization grant ("Device Authorization Grant") handler and registers
 // an access token, refresh token and authorize code validator.
 func RFC8628DeviceAuthorizationTokenFactory(config fosite.Configurator, storage interface{}, strategy interface{}) interface{} {
-	return &rfc8628.DeviceCodeTokenEndpointHandler{
-		GenericCodeTokenEndpointHandler: oauth2.GenericCodeTokenEndpointHandler{
-			CodeTokenEndpointHandler: &rfc8628.DeviceHandler{
-				DeviceRateLimitStrategy: strategy.(rfc8628.DeviceRateLimitStrategy),
-				DeviceStrategy:          strategy.(rfc8628.DeviceCodeStrategy),
-				DeviceStorage:           storage.(rfc8628.DeviceCodeStorage),
-			},
-			AccessTokenStrategy:    strategy.(oauth2.AccessTokenStrategy),
-			RefreshTokenStrategy:   strategy.(oauth2.RefreshTokenStrategy),
-			CoreStorage:            storage.(oauth2.CoreStorage),
-			TokenRevocationStorage: storage.(oauth2.TokenRevocationStorage),
-			Config:                 config,
-		},
+	return &rfc8628.DeviceTokenEndpointHandler{
+		DeviceRateLimitStrategy: strategy.(rfc8628.DeviceRateLimitStrategy),
+		DeviceStorage:           strategy.(rfc8628.DeviceCodeStorage),
+		DeviceStrategy:          strategy.(rfc8628.RFC8628CodeStrategy),
+		AccessTokenStrategy:     strategy.(oauth2.AccessTokenStrategy),
+		RefreshTokenStrategy:    strategy.(oauth2.RefreshTokenStrategy),
+		CoreStorage:             storage.(rfc8628.RFC8628CoreStorage),
+		TokenRevocationStorage:  storage.(oauth2.TokenRevocationStorage),
+		Config:                  config,
 	}
 }
