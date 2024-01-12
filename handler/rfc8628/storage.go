@@ -7,11 +7,14 @@ import (
 	"context"
 
 	"github.com/ory/fosite"
+	"github.com/ory/fosite/handler/oauth2"
 )
 
-type RFC8628CodeStorage interface {
+type RFC8628CoreStorage interface {
 	DeviceCodeStorage
 	UserCodeStorage
+	oauth2.AccessTokenStorage
+	oauth2.RefreshTokenStorage
 }
 
 type DeviceCodeStorage interface {

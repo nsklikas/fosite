@@ -35,10 +35,6 @@ func (c *OpenIDConnectDeviceHandler) HandleDeviceUserEndpointRequest(ctx context
 		return errorsx.WithStack(fosite.ErrMisconfiguration.WithDebug("The device code has not been issued yet, indicating a broken code configuration."))
 	}
 
-	if err := c.OpenIDConnectRequestValidator.ValidatePrompt(ctx, ar); err != nil {
-		return err
-	}
-
 	if err := c.OpenIDConnectRequestStorage.CreateOpenIDConnectSession(ctx, ar.GetDeviceCodeSignature(), ar.Sanitize(oidcParameters)); err != nil {
 		return errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithDebug(err.Error()))
 	}
